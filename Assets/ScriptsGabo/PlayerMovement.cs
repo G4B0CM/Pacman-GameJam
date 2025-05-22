@@ -1,45 +1,87 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using System.Collections; // Necesario para las Coroutines
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f;
+    [Header("Movement Settings")]
+    [SerializeField] float moveSpeed = 5f; // Velocidad de movimiento constante hacia adelante
+    [SerializeField] float turnDuration = 0.1f; // Duración en segundos para completar el giro de 90 grados (más bajo = más rápido)
+
     private Rigidbody rb;
-    private Vector3 moveDirection;
+    private Vector2 turnInput; // Para capturar la entrada de giro (X = -1 para Izq, 1 para Der)
 
-    public Transform cameraTransform; // Arrastra la cámara aquí desde el editor
+    private bool isTurning = false; // Bandera para controlar si Pac-Man está girando
 
-    private void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            Debug.LogError("PlayerMovement requiere un Rigidbody en el mismo GameObject.");
+            enabled = false;
+            return;
+        }
     }
 
-    private void Update()
+    void FixedUpdate()
     {
-        float moveX = Input.GetAxisRaw("Horizontal"); // A/D o flechas izquierda/derecha
-        float moveZ = Input.GetAxisRaw("Vertical");   // W/S o flechas arriba/abajo
-
-        moveDirection = new Vector3(moveX, 0f, moveZ).normalized;
+        // Mover Pac-Man siempre hacia adelante
+        rb.MovePosition(rb.position + transform.forward * moveSpeed * Time.fixedDeltaTime);
     }
 
-    private void FixedUpdate()
+    // Este método es llamado automáticamente por el componente Player Input
+    // cuando se activa la acción 'Move' (mapeada a un Vector2 con A/D)
+    public void OnMove(InputValue value)
     {
-        if (moveDirection != Vector3.zero)
-        {
-            rb.MovePosition(rb.position + moveDirection * moveSpeed * Time.fixedDeltaTime);
-        }
+        // Obtenemos el Vector2 de la entrada (e.g., (-1,0) para 'A', (1,0) para 'D')
+        turnInput = value.Get<Vector2>();
 
-        // Opcional: rota el personaje hacia la dirección de movimiento
-        if (moveDirection != Vector3.zero)
+        // Si hay una entrada de giro horizontal y Pac-Man no está ya girando
+        if (turnInput.x != 0 && !isTurning)
         {
-            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, 720 * Time.fixedDeltaTime);
-        }
-
-        // Hacer que la cámara siga al jugador (manteniendo la distancia)
-        if (cameraTransform != null)
-        {
-            cameraTransform.position = transform.position + new Vector3(0, 10, -10); // Ajusta según tu escena
-            cameraTransform.LookAt(transform);
+            float targetAngle = turnInput.x * 90f; // -90 para izquierda, +90 para derecha
+            StartCoroutine(Turn90Degrees(targetAngle));
         }
     }
+
+    private IEnumerator Turn90Degrees(float angle)
+    {
+        isTurning = true; // Marca que Pac-Man está girando
+
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation = transform.rotation * Quaternion.Euler(0, angle, 0); // Calcula la rotación final
+
+        float timer = 0f;
+        while (timer < turnDuration)
+        {
+            // Interpolar suavemente entre la rotación inicial y la final
+            transform.rotation = Quaternion.Slerp(startRotation, endRotation, timer / turnDuration);
+            timer += Time.deltaTime;
+            yield return null; // Espera al siguiente frame
+        }
+
+        transform.rotation = endRotation; // Asegura que la rotación sea exactamente 90 grados al final
+        isTurning = false; // Marca que el giro ha terminado
+    }
+
+    // Opcional: Manejo de colisiones si Pac-Man debe detenerse
+    /*
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Wall"))
+        {
+            // Puedes detener el movimiento aquí si lo necesitas
+            // moveSpeed = 0f; 
+        }
+    }
+
+    private void OnCollisionExit(Collision actualCollision)
+    {
+        if (actualCollision.gameObject.CompareTag("Wall"))
+        {
+            // moveSpeed = 5f; // Restablecer la velocidad
+        }
+    }
+    */
 }
