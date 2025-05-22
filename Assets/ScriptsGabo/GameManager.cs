@@ -1,9 +1,11 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
+    [SerializeField] TMP_Text endGame;
 
     private int score = 0;
     private int totalFoodCount;
@@ -39,8 +41,7 @@ public class GameManager : MonoBehaviour
         if (totalFoodCount <= 0)
         {
             Debug.Log("¡Ganaste!");
-            // Aquí puedes cargar una escena de victoria o mostrar un UI
-            // SceneManager.LoadScene("WinScene");
+            endGame.text = "Ganaste!";
         }
     }
 }

@@ -4,7 +4,7 @@ public class EnemyAI : MonoBehaviour
 {
     public Transform player;
     public float speed = 3.0f;
-    public float killDistance = 1.5f;
+    public float killDistance = 2f;
 
     void Start()
     {
@@ -28,12 +28,19 @@ public class EnemyAI : MonoBehaviour
             speed * Time.deltaTime
         );
 
-        float distance = Vector3.Distance(transform.position, player.position);
+        
+    }
 
-        if (distance < killDistance)
+    
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag == "Player")
         {
-            Debug.Log("¡El enemigo atrapó al jugador!");
-            Destroy(player.gameObject);
+            PacManHealth pacManHealth = collision.gameObject.GetComponent<PacManHealth>();
+            if (pacManHealth != null)
+            {
+                pacManHealth.LoseLife();
+            }
         }
     }
 }
